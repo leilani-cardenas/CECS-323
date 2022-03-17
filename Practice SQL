@@ -1,0 +1,201 @@
+-- MHW Practice SQL 8-17
+-- Where Clause
+-- 8. select contact firstname, contact lastname and credit limit for all customers where credit
+-- limit > 50000 ordered by the last name, then the first name. (85)
+SELECT contactfirstname, contactlastname, creditlimit
+    FROM customers
+    WHERE creditlimit > 50000
+    ORDER BY contactlastname ASC, contactfirstname ASC;
+
+-- 9. select customers who do not have a credit limit (0.00) order by customerName (24)
+SELECT customername, creditlimit
+    FROM customers
+    WHERE creditlimit = 0.00
+    ORDER BY customername ASC;
+
+-- 10. List all offices not in the USA (4)
+SELECT officecode, city
+    FROM offices
+    WHERE country <> 'USA';
+
+-- 11. List orders made between June 16, 2014 and July 7, 2014 (8)
+SELECT *
+    FROM orders
+    WHERE orderdate BETWEEN '2014-06-16' AND '2014-07-7';
+
+-- 12. List products that we need to reorder (quantityinstock < 1000) (12)
+SELECT productname
+    FROM products
+    WHERE quantityinstock < 1000;
+
+-- 13. List all orders that shipped after the required date (1)
+SELECT *
+    FROM orders
+    WHERE shippeddate > requireddate;
+
+-- 14. List all customers who have the word ‘Mini’ in their name (10)
+SELECT customername
+    FROM customers
+    WHERE customername LIKE '%Mini%';
+
+-- 15. List all products supplied by ‘Highway 66 Mini Classics’ (9)
+SELECT productname
+    FROM products
+    WHERE productvendor = 'Highway 66 Mini Classics';
+
+-- 16. List all products not supplied by ‘Highway 66 Mini Classics’ order by productName (101)
+SELECT *
+    FROM products
+    WHERE productvendor <> 'Highway 66 Mini Classics'
+    ORDER BY productname ASC;
+
+-- 17. List all employees that don't have a manager (1)
+SELECT *
+    FROM employees
+    WHERE reportsto IS NULL;
+
+
+-- MHW Practice SQL 18-24
+-- Inner Join
+-- 18. Display every order along with the details of that order for order numbers 10270, 10272,
+-- 10279 (23)
+-- Hint: this can be done two ways. Try both. Which is easier if you have many selection criteria?
+SELECT *
+    FROM orders
+    INNER JOIN orderdetails USING (ordernumber)
+    WHERE ordernumber = 10270 OR ordernumber = 10272 OR ordernumber = 10279;
+
+-- 19. List of productlines, the productline’s text description and vendors that supply the products
+-- in that productline ordered by productLine and productVendor. (65)
+SELECT DISTINCT productline, textdescription, productvendor
+    FROM productlines
+    INNER JOIN products USING (productline)
+    ORDER BY productline, productvendor;
+
+-- 20. select customers that live in the same state as one of our offices ordered by
+-- customerName (26)
+SELECT customername
+    FROM customers
+    INNER JOIN offices USING (country)
+    WHERE customers.state = offices.state
+    ORDER BY customername;
+
+-- 21. select customers that live in the same state as their employee representative works (26)
+SELECT DISTINCT customername
+    FROM customers
+    INNER JOIN employees ON customers.salesrepemployeenumber = employees.employeenumber
+    INNER JOIN offices USING (officecode)
+    WHERE customers.state = offices.state;
+
+-- Multi-join
+-- 22. Select customerName, orderDate, quantityOrdered, productLine, productName for all
+-- orders by a customer with the string ‘Decorations’ in their name, made and shipped during
+-- odd-numbered months in 2015 ordered by customerName and orderDate. SQL has a
+-- mod function that takes two arguments: the number that you want to perform modular
+-- division on, and the divisor. For instance mod (8, 3) will return 2. (28)
+SELECT customername, orderdate, quantityordered, productline, productname
+    FROM orders
+    INNER JOIN customers USING(customernumber)
+    INNER JOIN orderdetails USING(ordernumber)
+    INNER JOIN products USING(productcode)
+    WHERE customername LIKE '%Decorations%'
+      AND mod(MONTH(orderdate), 2) = 1 AND YEAR(orderdate) = 2015
+      AND mod(MONTH(shippeddate), 2) = 1 AND YEAR(shippeddate) = 2015
+    ORDER BY customername, orderdate;
+
+-- Outer Join
+-- 23. List products that didn't sell (1)
+ SELECT productname
+    FROM products
+    LEFT OUTER JOIN orderdetails USING (productcode)
+    WHERE quantityordered IS NULL;
+
+-- 24. List all customers and their sales rep even if they don’t have a sales rep order by
+-- customerName (122)
+SELECT customername, salesrepemployeenumber
+    FROM customers
+    LEFT OUTER JOIN employees on customers.salesrepemployeenumber = employees.employeenumber;
+
+
+-- MHW Practice SQL 25-30
+-- 25. Find the total of all payments made by each customer (98)
+-- Aggregate Functions
+SELECT customername, SUM(amount) AS totalpayments
+    FROM customers
+    INNER JOIN payments USING (customernumber)
+    GROUP BY customername;
+
+-- 26. Find the largest payment made by a customer (1)
+SELECT MAX(amount)
+    FROM payments;
+
+-- 27. Find the average payment made by a customer (1)
+SELECT AVG(amount)
+    FROM payments;
+
+-- 28. What is the total number of products per product line (7)
+SELECT productline, COUNT(productname) AS totalnumofproducts
+    FROM products
+    GROUP BY productline;
+
+-- 29. What is the number of orders per status (6)
+SELECT status, COUNT(ordernumber) as numoforders
+    FROM orders
+    GROUP BY status;
+
+-- 30. List all offices and the number of employees working in each office (7)
+SELECT officecode, COUNT(employeenumber) as numofemployees
+    FROM employees
+    GROUP BY officecode;
+
+
+-- MHW Practice SQL 31-36
+-- Having
+-- 31. List the total number of products per product line where number of products > 3 (6)
+SELECT productline, COUNT(productname) AS totalnumofproducts
+    FROM products
+    GROUP BY productline
+    HAVING COUNT(productname) > 3;
+
+-- 32. List the orderNumber and order total for all orders that totaled more than $60,000.00. (3)
+SELECT ordernumber, SUM(quantityordered * priceeach) AS ordertotal
+    FROM orderdetails
+    GROUP BY ordernumber
+    HAVING SUM(quantityordered * priceeach) > 60000;
+
+-- Computations
+-- 33. List the products and the profit that we have made on them. The profit in each order for a given product is (priceEach – buyPrice) * quantityOrdered.
+--      List the product’s name and code with the total profit that we have earned selling that product. Order the rows descending by profit.
+--      Only show those products whose profit is greater than $60,000.00. (11)
+SELECT productname, productcode, SUM((priceeach - buyprice) * quantityordered) AS profit
+    FROM products
+    INNER JOIN orderdetails USING (productcode)
+    GROUP BY productname, productcode
+    HAVING SUM((priceeach - buyprice) * quantityordered) > 60000
+    ORDER BY profit DESC;
+
+-- 34. List the average of the money spent on each product across all orders where that product appears when the customer is based in Japan.
+--      Show these products in descending order by the average expenditure (45).
+SELECT productcode, AVG(quantityordered * priceeach) AS avgspentperproduct
+    FROM orderdetails
+    INNER JOIN orders USING (ordernumber)
+    INNER JOIN customers USING (customernumber)
+    WHERE country = 'Japan'
+    GROUP BY productcode
+    ORDER BY AVG(quantityordered * priceeach) DESC;
+
+-- 35. What is the profit per product (MSRP-buyprice). Order by productName. (110)
+SELECT productname, (msrp - buyprice) AS profit
+    FROM products
+    ORDER BY productname;
+
+-- 36. List the Customer Name and their total orders (quantity * priceEach) across all orders that the customer has ever placed with us,
+--      in descending order by order total for those customers who have ordered more than $100,000.00 from us ordered by Customer total in descending order. (32)
+SELECT customername, SUM(quantityordered * priceeach) AS totalorders
+    FROM customers
+    INNER JOIN orders USING (customernumber)
+    INNER JOIN orderdetails USING (ordernumber)
+    GROUP BY customername
+    HAVING sum(quantityordered * priceeach) > 100000
+    ORDER BY SUM(quantityordered * priceeach) DESC;
+
